@@ -22,15 +22,6 @@ int main()
     int success;
     char infoLog[512];
 
-    glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
-    glm::mat4 trans = glm::mat4(1.0f); // identity matrix
-    // trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f)); // translation
-    trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-    trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-    vec = trans * vec;
-
-    std::cout << vec.x << " " << vec.y << " " << vec.z << std::endl;
-
     glfwInit();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -83,73 +74,41 @@ int main()
     }
 
     // compile fragment shader
-    unsigned int fragmentShaders[2];
-    fragmentShaders[0] = glCreateShader(GL_FRAGMENT_SHADER);
+    unsigned int fragmentShader;
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     std::string fragShaderSrc = loadShaderSrc("./assets/fragment_core.glsl");
     const GLchar *fragShader = fragShaderSrc.c_str();
-    glShaderSource(fragmentShaders[0], 1, &fragShader, NULL);
-    glCompileShader(fragmentShaders[0]);
+    glShaderSource(fragmentShader, 1, &fragShader, NULL);
+    glCompileShader(fragmentShader);
 
     // catch error if fragment shader causes an error
-    glGetShaderiv(fragmentShaders[0], GL_COMPILE_STATUS, &success);
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
-        glGetShaderInfoLog(fragmentShaders[0], 512, NULL, infoLog);
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         std::cout << "Error with fragment shader compilation: " << std::endl
                   << infoLog << std::endl;
     }
 
-    // compile second fragment shader
-    fragmentShaders[1] = glCreateShader(GL_FRAGMENT_SHADER);
-    fragShaderSrc = loadShaderSrc("./assets/fragment_core2.glsl");
-    fragShader = fragShaderSrc.c_str();
-    glShaderSource(fragmentShaders[1], 1, &fragShader, NULL);
-    glCompileShader(fragmentShaders[1]);
+    unsigned int shaderProgram;
+    shaderProgram = glCreateProgram();
 
-    // catch error if fragment shader causes an error
-    glGetShaderiv(fragmentShaders[1], GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShaders[1], 512, NULL, infoLog);
-        std::cout << "Error with fragment shader compilation: " << std::endl
-                  << infoLog << std::endl;
-    }
-
-    unsigned int shaderPrograms[2];
-    shaderPrograms[0] = glCreateProgram();
-
-    glAttachShader(shaderPrograms[0], vertexShader);
-    glAttachShader(shaderPrograms[0], fragmentShaders[0]);
-    glLinkProgram(shaderPrograms[0]);
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
 
     // catch errors
-    glGetProgramiv(shaderPrograms[0], GL_LINK_STATUS, &success);
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success)
     {
-        glGetProgramInfoLog(shaderPrograms[0], 512, NULL, infoLog);
-        std::cout << "Linking error: " << std::endl
-                  << infoLog << std::endl;
-    }
-
-    shaderPrograms[1] = glCreateProgram();
-
-    glAttachShader(shaderPrograms[1], vertexShader);
-    glAttachShader(shaderPrograms[1], fragmentShaders[1]);
-    glLinkProgram(shaderPrograms[1]);
-
-    // catch errors
-    glGetProgramiv(shaderPrograms[1], GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(shaderPrograms[1], 512, NULL, infoLog);
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
         std::cout << "Linking error: " << std::endl
                   << infoLog << std::endl;
     }
 
     // delete shaders since they have been used now
     glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShaders[0]);
-    glDeleteShader(fragmentShaders[1]);
+    glDeleteShader(fragmentShader);
 
     // Vertex Array
     // float vertices[] = {
@@ -165,18 +124,14 @@ int main()
 
     float vertices[] = {
         // first triangle
-        -0.5f, -0.5f, 0.0f,
-        -0.25f, 0.5f, 0.0f,
-        -0.1f, -0.5f, 0.0f,
-
-        // second triangle
-        0.5f, -0.5f, 0.0f,
-        0.25f, 0.5f, 0.0f,
-        0.1f, -0.5f, 0.0f};
+        -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.5f,
+        0.5f, 0.5f, 0.0f, 0.5f, 1.0f, 0.75f,
+        0.5f, -0.5f, 0.0f, 0.6f, 1.0f, 0.2f,
+        -0.5f, 0.5f, 0.0f, 0.3f, 0.1f, 0.8f};
 
     unsigned int indices[] = {
         0, 1, 2,
-        3, 4, 5};
+        0, 3, 1};
 
     // VAO/VBO
     unsigned int VAO,
@@ -194,30 +149,42 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     // set attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+
+    // positions
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
+
+    // color
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // set up EBO
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
+    // rotation matrix
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    glUseProgram(shaderProgram);
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transform"), 1, GL_FALSE, glm::value_ptr(trans));
+
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
 
+        // set background
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        trans = glm::rotate(trans, glm::radians((float)glfwGetTime() / 100.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transform"), 1, GL_FALSE, glm::value_ptr(trans));
 
         // draw shapes
         glBindVertexArray(VAO);
 
         // first triangle
-        glUseProgram(shaderPrograms[0]);
+        glUseProgram(shaderProgram);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        // second triangle
-        glUseProgram(shaderPrograms[1]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)(3 * sizeof(unsigned int)));
 
         glfwSwapBuffers(window);
         glfwPollEvents();
