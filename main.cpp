@@ -152,6 +152,9 @@ int main()
     shader.setInt("texture1", 0);
     // shader.setInt("texture2", 1);
 
+    shader.activate();
+    glm::mat4 trans = glm::mat4(1.0);
+
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -162,6 +165,9 @@ int main()
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
+
+        trans = glm::rotate(trans, glm::radians((float)glfwGetTime() / 100.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        shader.setMat4("transform", trans);
         // glActiveTexture(GL_TEXTURE1);
         // glBindTexture(GL_TEXTURE_2D, texture2);
         // draw shapes
