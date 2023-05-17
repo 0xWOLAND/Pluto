@@ -17,6 +17,8 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
 std::string loadShaderSrc(const char *filename);
 
+float mixVal = 0.5f;
+
 int main()
 {
     std::cout << "Hello world\n";
@@ -131,26 +133,26 @@ int main()
 
     stbi_image_free(data);
 
-    // glGenTextures(1, &texture2);
-    // glBindTexture(GL_TEXTURE_2D, texture2);
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
 
-    // data = stbi_load("./assets/trump.jpg", &width, &height, &nChannels, 0);
+    data = stbi_load("./assets/trump.jpg", &width, &height, &nChannels, 0);
 
-    // if (data)
-    // {
-    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    //     glGenerateMipmap(GL_TEXTURE_2D);
-    // }
-    // else
-    // {
-    //     std::cout << "Failed to load texture\n";
-    // }
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture\n";
+    }
 
-    // stbi_image_free(data);
+    stbi_image_free(data);
 
     shader.activate();
     shader.setInt("texture1", 0);
-    // shader.setInt("texture2", 1);
+    shader.setInt("texture2", 1);
 
     shader.activate();
     glm::mat4 trans = glm::mat4(1.0);
@@ -168,11 +170,13 @@ int main()
 
         trans = glm::rotate(trans, glm::radians((float)glfwGetTime() / 100.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         shader.setMat4("transform", trans);
-        // glActiveTexture(GL_TEXTURE1);
-        // glBindTexture(GL_TEXTURE_2D, texture2);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
         // draw shapes
         glBindVertexArray(VAO);
         shader.activate();
+
+        shader.setFloat("mixVal", mixVal);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glBindVertexArray(0);
@@ -200,6 +204,19 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
         glfwSetWindowShouldClose(window, true);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        mixVal += 0.005f;
+        if (mixVal >= 1.0f)
+            mixVal = 1.0f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        mixVal -= 0.005f;
+        if (mixVal <= 0.0f)
+            mixVal = 0.0f;
     }
 }
 
