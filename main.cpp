@@ -25,6 +25,9 @@ float mixVal = 0.5f;
 glm::mat4 transform = glm::mat4(1.0f);
 Joystick mainJ(0);
 
+unsigned int SCR_WIDTH = 800, SCR_HEIGHT = 600;
+float x, y, z;
+
 int main()
 {
     std::cout << "Hello world\n";
@@ -43,7 +46,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow *window = glfwCreateWindow(800, 600, "Pluto", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Pluto", NULL, NULL);
 
     if (window == NULL)
     {
@@ -60,7 +63,7 @@ int main()
         return -1;
     }
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -72,28 +75,61 @@ int main()
 
     glfwSetScrollCallback(window, Mouse::mouseWheelCallback);
 
+    glEnable(GL_DEPTH_TEST);
+
     // Shaders
     Shader shader("./assets/vertex_core.glsl", "./assets/fragment_core.glsl");
 
     float vertices[] = {
-        // positions		// colors			// texture coordinates
-        -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.5f, 0.0f, 0.0f, // bottom left
-        -0.5f, 0.5f, 0.0f, 0.5f, 1.0f, 0.75f, 0.0f, 1.0f, // top left
-        0.5f, -0.5f, 0.0f, 0.6f, 1.0f, 0.2f, 1.0f, 0.0f,  // bottom right
-        0.5f, 0.5f, 0.0f, 1.0f, 0.2f, 1.0f, 1.0f, 1.0f    // top right
-    };
-    unsigned int indices[] = {
-        0, 1, 2, // first triangle
-        3, 1, 2  // second triangle
-    };
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f};
 
     // VAO/VBO
     unsigned int VAO,
-        VBO, EBO;
+        VBO;
 
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
+    // glGenBuffers(1, &EBO);
 
     // Bind VAO
     glBindVertexArray(VAO);
@@ -105,20 +141,20 @@ int main()
     // set attributes
 
     // positions
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
     // color
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+    // glEnableVertexAttribArray(1);
 
     // set up EBO
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // texture coords
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // textures
     unsigned int texture1, texture2;
@@ -168,8 +204,16 @@ int main()
     shader.setInt("texture1", 0);
     shader.setInt("texture2", 1);
 
-    shader.activate();
-    glm::mat4 trans = glm::mat4(1.0);
+    // transformation
+    // glm::mat4 trans = glm::mat4(1.0f);
+    // trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    // trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    // shader.activate();
+    // shader.setMat4("transform", trans);
+
+    x = 0.0f;
+    y = 0.0f;
+    z = 3.0f;
 
     mainJ.update();
     if (mainJ.isPresent())
@@ -187,20 +231,36 @@ int main()
 
         // set background
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
+
         // draw shapes
         glBindVertexArray(VAO);
-        shader.activate();
 
+        // create transformation for screen
+        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 view = glm::mat4(1.0f);
+        glm::mat4 proj = glm::mat4(1.0f);
+
+        model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-55.0f), glm::vec3(0.5f));
+        view = glm::translate(view, glm::vec3(-x, -y, -z));
+        proj = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+        shader.activate();
+        shader.setMat4("model", model);
+        shader.setMat4("view", view);
+        shader.setMat4("proj", proj);
+
+        // mixVal between textures
         shader.setFloat("mixVal", mixVal);
-        shader.setMat4("transform", transform);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // shader.setMat4("transform", transform);
+        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glBindVertexArray(0);
 
@@ -210,7 +270,7 @@ int main()
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    // glDeleteBuffers(1, &EBO);
 
     glfwTerminate();
 
@@ -219,6 +279,8 @@ int main()
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
+    SCR_WIDTH = width;
+    SCR_HEIGHT = height;
     glViewport(0, 0, width, height);
 }
 
@@ -242,36 +304,44 @@ void processInput(GLFWwindow *window)
             mixVal = 0.0f;
     }
 
-    // if (Keyboard::key(GLFW_KEY_W))
-    // {
-    //     transform = glm::translate(transform, glm::vec3(0.0f, 0.1f, 0.0f));
-    // }
-    // if (Keyboard::key(GLFW_KEY_S))
-    // {
-    //     transform = glm::translate(transform, glm::vec3(0.0f, -0.1f, 0.0f));
-    // }
-    // if (Keyboard::key(GLFW_KEY_A))
-    // {
-    //     transform = glm::translate(transform, glm::vec3(-0.1f, 0.0f, 0.0f));
-    // }
-    // if (Keyboard::key(GLFW_KEY_D))
-    // {
-    //     transform = glm::translate(transform, glm::vec3(0.1f, 0.0f, 0.0f));
-    // }
-
-    mainJ.update();
-
-    float lx = mainJ.axesState(GLFW_JOYSTICK_AXES_LEFT_STICK_X);
-    float ly = -mainJ.axesState(GLFW_JOYSTICK_AXES_LEFT_STICK_Y);
-
-    if (std::abs(lx) > 0.5f)
+    if (Keyboard::key(GLFW_KEY_W))
     {
-        transform = glm::translate(transform, glm::vec3(lx / 10, 0.0f, 0.0f));
+        y += 0.05f;
     }
-    if (std::abs(ly) > 0.5f)
+    if (Keyboard::key(GLFW_KEY_S))
     {
-        transform = glm::translate(transform, glm::vec3(0.0f, ly / 10, 0.0f));
+        y -= 0.05f;
     }
+    if (Keyboard::key(GLFW_KEY_A))
+    {
+        x -= 0.05f;
+    }
+    if (Keyboard::key(GLFW_KEY_D))
+    {
+        x += 0.05f;
+    }
+    if (Keyboard::key(GLFW_KEY_UP))
+    {
+        z -= 0.05f;
+    }
+    if (Keyboard::key(GLFW_KEY_DOWN))
+    {
+        z += 0.05f;
+    }
+
+    // mainJ.update();
+
+    // float lx = mainJ.axesState(GLFW_JOYSTICK_AXES_LEFT_STICK_X);
+    // float ly = -mainJ.axesState(GLFW_JOYSTICK_AXES_LEFT_STICK_Y);
+
+    // if (std::abs(lx) > 0.5f)
+    // {
+    //     transform = glm::translate(transform, glm::vec3(lx / 10, 0.0f, 0.0f));
+    // }
+    // if (std::abs(ly) > 0.5f)
+    // {
+    //     transform = glm::translate(transform, glm::vec3(0.0f, ly / 10, 0.0f));
+    // }
 }
 
 std::string loadShaderSrc(const char *filename)
