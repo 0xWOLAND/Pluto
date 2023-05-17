@@ -131,26 +131,26 @@ int main()
 
     stbi_image_free(data);
 
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
+    // glGenTextures(1, &texture2);
+    // glBindTexture(GL_TEXTURE_2D, texture2);
 
-    data = stbi_load("./assets/trump.jpg", &width, &height, &nChannels, 0);
+    // data = stbi_load("./assets/trump.jpg", &width, &height, &nChannels, 0);
 
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture\n";
-    }
+    // if (data)
+    // {
+    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    //     glGenerateMipmap(GL_TEXTURE_2D);
+    // }
+    // else
+    // {
+    //     std::cout << "Failed to load texture\n";
+    // }
 
-    stbi_image_free(data);
+    // stbi_image_free(data);
 
     shader.activate();
     shader.setInt("texture1", 0);
-    shader.setInt("texture2", 1);
+    // shader.setInt("texture2", 1);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -162,8 +162,8 @@ int main()
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
+        // glActiveTexture(GL_TEXTURE1);
+        // glBindTexture(GL_TEXTURE_2D, texture2);
         // draw shapes
         glBindVertexArray(VAO);
         shader.activate();
