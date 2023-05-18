@@ -2,6 +2,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <stb/stb_image.h>
@@ -15,15 +16,20 @@
 #include "io/Keyboard.h"
 #include "io/Mouse.h"
 #include "io/Joystick.h"
+#include "io/Camera.h"
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow *window, double dt);
 std::string loadShaderSrc(const char *filename);
 
 float mixVal = 0.5f;
 
 glm::mat4 transform = glm::mat4(1.0f);
 Joystick mainJ(0);
+
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
 unsigned int SCR_WIDTH = 800, SCR_HEIGHT = 600;
 float x, y, z;
@@ -66,14 +72,11 @@ int main()
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
     glfwSetKeyCallback(window, Keyboard::keyCallback);
-
     glfwSetCursorPosCallback(window, Mouse::cursorPosCallback);
-
     glfwSetMouseButtonCallback(window, Mouse::mouseButtonCallback);
-
     glfwSetScrollCallback(window, Mouse::mouseWheelCallback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -211,9 +214,9 @@ int main()
     // shader.activate();
     // shader.setMat4("transform", trans);
 
-    x = 0.0f;
-    y = 0.0f;
-    z = 3.0f;
+    // x = 0.0f;
+    // y = 0.0f;
+    // z = 3.0f;
 
     mainJ.update();
     if (mainJ.isPresent())
@@ -227,7 +230,10 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
-        processInput(window);
+        double currentTime = glfwGetTime();
+        deltaTime = currentTime - lastFrame;
+        lastFrame = currentTime;
+        processInput(window, deltaTime);
 
         // set background
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -248,7 +254,7 @@ int main()
         glm::mat4 proj = glm::mat4(1.0f);
 
         model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-55.0f), glm::vec3(0.5f));
-        view = glm::translate(view, glm::vec3(-x, -y, -z));
+        view = camera.getViewMatrix();
         proj = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
         shader.activate();
@@ -257,6 +263,7 @@ int main()
         shader.setMat4("proj", proj);
 
         // mixVal between textures
+        shader.activate();
         shader.setFloat("mixVal", mixVal);
         // shader.setMat4("transform", transform);
         // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -284,7 +291,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow *window)
+void processInput(GLFWwindow *window, double dt)
 {
     if (Keyboard::key(GLFW_KEY_ESCAPE))
     {
@@ -306,42 +313,28 @@ void processInput(GLFWwindow *window)
 
     if (Keyboard::key(GLFW_KEY_W))
     {
-        y += 0.05f;
-    }
-    if (Keyboard::key(GLFW_KEY_S))
-    {
-        y -= 0.05f;
+        camera.updateCameraPos(CameraDirection::UP, dt);
     }
     if (Keyboard::key(GLFW_KEY_A))
     {
-        x -= 0.05f;
+        camera.updateCameraPos(CameraDirection::LEFT, dt);
+    }
+    if (Keyboard::key(GLFW_KEY_S))
+    {
+        camera.updateCameraPos(CameraDirection::DOWN, dt);
     }
     if (Keyboard::key(GLFW_KEY_D))
     {
-        x += 0.05f;
+        camera.updateCameraPos(CameraDirection::RIGHT, dt);
     }
-    if (Keyboard::key(GLFW_KEY_UP))
+    if (Keyboard::key(GLFW_KEY_SPACE))
     {
-        z -= 0.05f;
+        camera.updateCameraPos(CameraDirection::FORWARD, dt);
     }
-    if (Keyboard::key(GLFW_KEY_DOWN))
+    if (Keyboard::key(GLFW_KEY_LEFT_SHIFT))
     {
-        z += 0.05f;
+        camera.updateCameraPos(CameraDirection::BACKWARD, dt);
     }
-
-    // mainJ.update();
-
-    // float lx = mainJ.axesState(GLFW_JOYSTICK_AXES_LEFT_STICK_X);
-    // float ly = -mainJ.axesState(GLFW_JOYSTICK_AXES_LEFT_STICK_Y);
-
-    // if (std::abs(lx) > 0.5f)
-    // {
-    //     transform = glm::translate(transform, glm::vec3(lx / 10, 0.0f, 0.0f));
-    // }
-    // if (std::abs(ly) > 0.5f)
-    // {
-    //     transform = glm::translate(transform, glm::vec3(0.0f, ly / 10, 0.0f));
-    // }
 }
 
 std::string loadShaderSrc(const char *filename)
