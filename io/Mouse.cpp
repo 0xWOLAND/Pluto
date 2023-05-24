@@ -1,4 +1,5 @@
 #include "Mouse.h";
+#include <iostream>
 
 double Mouse::x = 0;
 double Mouse::y = 0;
@@ -12,7 +13,7 @@ double Mouse::dy = 0;
 double Mouse::scrollDX = 0;
 double Mouse::scrollDY = 0;
 
-bool Mouse::firstMouse = false;
+bool Mouse::firstMouse = true;
 bool Mouse::buttons[GLFW_MOUSE_BUTTON_LAST] = {0};
 bool Mouse::buttonsChanged[GLFW_MOUSE_BUTTON_LAST] = {0};
 
@@ -32,6 +33,8 @@ void Mouse::cursorPosCallback(GLFWwindow *window, double _x, double _y)
     dy = lastY - y;
     lastX = x;
     lastY = y;
+
+    // glfwSetCursorPos(window, 0, 0);
 }
 void Mouse::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 {
@@ -66,30 +69,30 @@ double Mouse::getMouseY()
 
 double Mouse::getDX()
 {
-    double _dx = dx;
+    double ret = dx;
     dx = 0;
-    return _dx;
+    return ret;
 }
 double Mouse::getDY()
 {
-    double _dy = dy;
+    double ret = dy;
     dy = 0;
-    return _dy;
+    return ret;
 }
 
 double Mouse::getScrollDX()
 {
 
-    double dx = scrollDX;
-    dx = 0;
-    return dx;
+    double ret = scrollDX;
+    scrollDX = 0;
+    return ret;
 }
 double Mouse::getScrollDY()
 {
 
-    double dy = scrollDY;
-    dy = 0;
-    return dy;
+    double ret = scrollDY;
+    scrollDY = 0;
+    return ret;
 }
 
 bool Mouse::button(int button)

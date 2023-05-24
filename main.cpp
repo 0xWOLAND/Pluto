@@ -12,32 +12,34 @@
 #include <streambuf>
 #include <string>
 
-#include "Shader.h"
+#include "graphics/Shader.h"
 #include "io/Keyboard.h"
 #include "io/Mouse.h"
 #include "io/Joystick.h"
 #include "io/Camera.h"
+#include "io/Screen.h"
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-void processInput(GLFWwindow *window, double dt);
-std::string loadShaderSrc(const char *filename);
+void processInput(double deltaTime);
 
 float mixVal = 0.5f;
 
-glm::mat4 transform = glm::mat4(1.0f);
+Screen screen;
+
 Joystick mainJ(0);
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
+double deltaTime = 0.0f; // tme btwn frames
+double lastFrame = 0.0f; // time of last frame
+int activeCam = 0;
 
+Camera cameras[2] = {
+    Camera(glm::vec3(0.0f, 0.0f, 3.0f)),
+    Camera(glm::vec3(10.0f, 10.0f, 10.0f)),
+};
 unsigned int SCR_WIDTH = 800, SCR_HEIGHT = 600;
 float x, y, z;
 
 int main()
 {
-    std::cout << "Hello world\n";
-
     int success;
     char infoLog[512];
 
@@ -52,16 +54,12 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Pluto", NULL, NULL);
-
-    if (window == NULL)
+    if (!screen.init())
     {
         std::cout << "Couldn't be created\n";
         glfwTerminate();
         return -1;
     }
-
-    glfwMakeContextCurrent(window);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -69,19 +67,10 @@ int main()
         return -1;
     }
 
-    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, Keyboard::keyCallback);
-    glfwSetCursorPosCallback(window, Mouse::cursorPosCallback);
-    glfwSetMouseButtonCallback(window, Mouse::mouseButtonCallback);
-    glfwSetScrollCallback(window, Mouse::mouseWheelCallback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    glEnable(GL_DEPTH_TEST);
+    screen.setParameters();
 
     // Shaders
-    Shader shader("./assets/vertex_core.glsl", "./assets/fragment_core.glsl");
+    Shader shader("assets/shader.vs", "assets/shader.fs");
 
     float vertices[] = {
         -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
@@ -207,17 +196,6 @@ int main()
     shader.setInt("texture1", 0);
     shader.setInt("texture2", 1);
 
-    // transformation
-    // glm::mat4 trans = glm::mat4(1.0f);
-    // trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    // trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    // shader.activate();
-    // shader.setMat4("transform", trans);
-
-    // x = 0.0f;
-    // y = 0.0f;
-    // z = 3.0f;
-
     mainJ.update();
     if (mainJ.isPresent())
     {
@@ -228,16 +206,15 @@ int main()
         std::cout << "Joystick not present.\n";
     }
 
-    while (!glfwWindowShouldClose(window))
+    while (!screen.shouldClose())
     {
         double currentTime = glfwGetTime();
         deltaTime = currentTime - lastFrame;
         lastFrame = currentTime;
-        processInput(window, deltaTime);
+        processInput(deltaTime);
 
         // set background
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        screen.update();
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
@@ -248,35 +225,37 @@ int main()
         // draw shapes
         glBindVertexArray(VAO);
 
+        shader.activate();
+
+        // mixVal between textures
+        shader.setFloat("mixVal", mixVal);
+
         // create transformation for screen
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = glm::mat4(1.0f);
         glm::mat4 proj = glm::mat4(1.0f);
 
         model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-55.0f), glm::vec3(0.5f));
-        view = camera.getViewMatrix();
-        proj = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        view = cameras[activeCam].getViewMatrix();
+        proj = glm::perspective(glm::radians(cameras[activeCam].getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
-        shader.activate();
         shader.setMat4("model", model);
         shader.setMat4("view", view);
         shader.setMat4("proj", proj);
 
-        // mixVal between textures
-        shader.activate();
-        shader.setFloat("mixVal", mixVal);
         // shader.setMat4("transform", transform);
         // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // std::cout << glm::to_string(view) << "\n";
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glBindVertexArray(0);
 
-        glfwSwapBuffers(window);
+        screen.newFrame();
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    // glDeleteVertexArrays(1, &VAO);
+    // glDeleteBuffers(1, &VBO);
     // glDeleteBuffers(1, &EBO);
 
     glfwTerminate();
@@ -284,18 +263,11 @@ int main()
     return 0;
 }
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height)
-{
-    SCR_WIDTH = width;
-    SCR_HEIGHT = height;
-    glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow *window, double dt)
+void processInput(double dt)
 {
     if (Keyboard::key(GLFW_KEY_ESCAPE))
     {
-        glfwSetWindowShouldClose(window, true);
+        screen.setShouldClose(true);
     }
 
     if (Keyboard::key(GLFW_KEY_UP))
@@ -311,29 +283,34 @@ void processInput(GLFWwindow *window, double dt)
             mixVal = 0.0f;
     }
 
+    if (Keyboard::keyWentDown(GLFW_KEY_TAB))
+    {
+        activeCam += (activeCam == 0) ? 1 : -1;
+    }
+
     if (Keyboard::key(GLFW_KEY_W))
     {
-        camera.updateCameraPos(CameraDirection::UP, dt);
+        cameras[activeCam].updateCameraPos(CameraDirection::UP, dt);
     }
     if (Keyboard::key(GLFW_KEY_A))
     {
-        camera.updateCameraPos(CameraDirection::LEFT, dt);
+        cameras[activeCam].updateCameraPos(CameraDirection::LEFT, dt);
     }
     if (Keyboard::key(GLFW_KEY_S))
     {
-        camera.updateCameraPos(CameraDirection::DOWN, dt);
+        cameras[activeCam].updateCameraPos(CameraDirection::DOWN, dt);
     }
     if (Keyboard::key(GLFW_KEY_D))
     {
-        camera.updateCameraPos(CameraDirection::RIGHT, dt);
+        cameras[activeCam].updateCameraPos(CameraDirection::RIGHT, dt);
     }
     if (Keyboard::key(GLFW_KEY_SPACE))
     {
-        camera.updateCameraPos(CameraDirection::FORWARD, dt);
+        cameras[activeCam].updateCameraPos(CameraDirection::FORWARD, dt);
     }
     if (Keyboard::key(GLFW_KEY_LEFT_SHIFT))
     {
-        camera.updateCameraPos(CameraDirection::BACKWARD, dt);
+        cameras[activeCam].updateCameraPos(CameraDirection::BACKWARD, dt);
     }
 }
 

@@ -14,7 +14,12 @@ class Shader
 {
 public:
     unsigned int id;
+
+    Shader();
     Shader(const char *vertexShaderPath, const char *fragmentShaderPath);
+
+    void generate(const char *vertexShaderPath, const char *fragmentShaderPath);
+
     void activate();
 
     // utils

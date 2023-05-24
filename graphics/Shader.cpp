@@ -1,7 +1,12 @@
 #include "Shader.h"
 
-Shader::Shader(const char *vertexShaderPath, const char *fragmentShaderPath)
+Shader::Shader()
 {
+}
+
+void Shader::generate(const char *vertexShaderPath, const char *fragmentShaderPath)
+{
+
     int success;
     char infoLog[512];
 
@@ -23,6 +28,11 @@ Shader::Shader(const char *vertexShaderPath, const char *fragmentShaderPath)
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+}
+
+Shader::Shader(const char *vertexShaderPath, const char *fragmentShaderPath)
+{
+    generate(vertexShaderPath, fragmentShaderPath);
 }
 
 void Shader::activate()
@@ -61,10 +71,10 @@ GLuint Shader::compileShader(const char *filepath, GLenum type)
     GLuint ret = glCreateShader(type);
     std::string shaderSrc = loadShaderSrc(filepath);
     const GLchar *shader = shaderSrc.c_str();
-    glShaderSource(ret, 1, &shader, NULL);
     glCompileShader(ret);
+    glShaderSource(ret, 1, &shader, NULL);
 
-    glGetProgramiv(ret, GL_LINK_STATUS, &success);
+    glGetShaderiv(ret, GL_COMPILE_STATUS, &success);
     if (!success)
     {
         glGetProgramInfoLog(ret, 512, NULL, infoLog);

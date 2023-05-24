@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include <iostream>
 
 Camera::Camera(glm::vec3 position) : cameraPos(position),
                                      worldUp(glm::vec3(0.0f, 1.0f, 0.0f)),
@@ -13,12 +14,12 @@ Camera::Camera(glm::vec3 position) : cameraPos(position),
 
 void Camera::updateCameraDirection(double dx, double dy)
 {
-    yaw += dx;
-    pitch += dy;
+    yaw -= dx;
+    pitch -= dy;
 
     if (pitch > 89.0f)
         pitch = 89.0f;
-    else if (pitch < -89.0f)
+    if (pitch < -89.0f)
         pitch = -89.0f;
     updateCameraVectors();
 }
@@ -62,6 +63,11 @@ void Camera::updateCameraZoom(double dy)
     {
         zoom = 45.0f;
     }
+}
+
+float Camera::getZoom()
+{
+    return zoom;
 }
 
 glm::mat4 Camera::getViewMatrix()
